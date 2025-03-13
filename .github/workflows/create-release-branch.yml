@@ -11,6 +11,8 @@ on:
 jobs:
   create-release-branch:
     runs-on: ubuntu-latest
+    outputs:
+      release_branch: ${{ steps.create-branch.outputs.release_branch }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,6 +26,7 @@ jobs:
           git config --global user.email 'github-actions@github.com'
 
       - name: Create release branch
+        id: create-branch
         run: |
           # バージョンを取得（指定がない場合は自動生成）
           if [ -z "${{ github.event.inputs.version }}" ]; then
@@ -52,32 +55,35 @@ jobs:
           git checkout -b $RELEASE_BRANCH
           git push --set-upstream origin $RELEASE_BRANCH
 
+          # 出力を設定
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+
       - name: Update version.txt
         run: |
           # バージョンを更新
-          echo "$RELEASE_VERSION" > version.txt
+          echo "${{ steps.create-branch.outputs.release_version }}" > version.txt
 
           # 変更をコミットしてプッシュ
           git add version.txt
-          git commit -m "chore: update version to $RELEASE_VERSION"
-          git push origin $RELEASE_BRANCH
+          git commit -m "chore: update version to ${{ steps.create-branch.outputs.release_version }}"
+          git push origin ${{ steps.create-branch.outputs.release_branch }}
 
       - name: Create Pull Request to main
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Release branch for $RELEASE_VERSION"
+          title: "Release branch for ${{ steps.create-branch.outputs.release_version }}"
           body: |
             This PR creates a new release branch from develop.
             Please review and merge this PR to create the release branch.
-          branch: ${{ env.RELEASE_BRANCH }}
+          branch: ${{ steps.create-branch.outputs.release_branch }}
           base: main
 
       - name: Create Pull Request to develop
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "Release branch for $RELEASE_VERSION"
+          title: "Release branch for ${{ steps.create-branch.outputs.release_version }}"
           body: |
             This PR creates a new release branch from develop.
             Please review and merge this PR to create the release branch.
-          branch: ${{ env.RELEASE_BRANCH }}
+          branch: ${{ steps.create-branch.outputs.release_branch }}
           base: develop
