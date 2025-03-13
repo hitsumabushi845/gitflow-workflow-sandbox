@@ -64,6 +64,7 @@ jobs:
         run: |
           # バージョンを更新
           echo "${{ steps.create-branch.outputs.release_version }}" > version.txt
+          git status
 
           # 変更をコミットしてプッシュ
           git add version.txt
