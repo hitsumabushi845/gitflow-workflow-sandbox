@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: develop
 
       - name: Configure Git
         run: |
@@ -35,11 +36,11 @@ jobs:
             CURRENT_VERSION=$(cat version.txt)
 
             # セマンティックバージョニングに基づいて更新
-            # 例: 1.0.0 -> 1.1.0
+            # 例: 1.0.0 -> 1.0.1
             IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
             MAJOR="${version_parts[0]}"
-            MINOR=$((version_parts[1] + 1))
-            PATCH="0"
+            MINOR="${version_parts[1]}"
+            PATCH=$((version_parts[2] + 1))
             RELEASE_VERSION="$MAJOR.$MINOR.$PATCH"
           else
             RELEASE_VERSION="${{ github.event.inputs.version }}"
@@ -49,7 +50,7 @@ jobs:
           
           # developブランチから新しいreleaseブランチを作成
           git checkout -b $RELEASE_BRANCH
-          git push origin $RELEASE_BRANCH
+          git push --set-upstream origin $RELEASE_BRANCH
 
       - name: Update version.txt
         run: |
