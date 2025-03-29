@@ -15,8 +15,8 @@ jobs:
       contents: write
       pull-requests: write
     outputs:
-      release_branch: ${{ steps.create-branch.outputs.release_branch }}
-      release_version: ${{ steps.create-branch.outputs.release_version }}
+      release_branch: ${{ steps.set-release-version.outputs.release_branch }}
+      release_version: ${{ steps.set-release-version.outputs.release_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,13 +24,8 @@ jobs:
           fetch-depth: 0
           ref: develop
 
-      - name: Configure Git
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'github-actions@github.com'
-
-      - name: Create release branch
-        id: create-branch
+      - name: Set release version
+        id: set-release-version
         run: |
           # バージョンを取得（指定がない場合は自動生成）
           if [ -z "${{ github.event.inputs.version }}" ]; then
@@ -54,10 +49,6 @@ jobs:
           fi
 
           RELEASE_BRANCH="release/v${RELEASE_VERSION}"
-          
-          # developブランチから新しいreleaseブランチを作成
-          git checkout -b $RELEASE_BRANCH
-          git push --set-upstream origin $RELEASE_BRANCH
 
           # 出力を設定
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
@@ -66,26 +57,26 @@ jobs:
       - name: Update version.txt
         run: |
           # バージョンを更新
-          echo "${{ steps.create-branch.outputs.release_version }}" > version.txt
+          echo "${{ steps.set-release-version.outputs.release_version }}" > version.txt
 
       - name: Create Pull Request to main
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "Release branch for ${{ steps.create-branch.outputs.release_version }}"
+          title: "Release branch for ${{ steps.set-release-version.outputs.release_version }}"
           body: |
             This PR creates a new release branch from develop.
             Please review and merge this PR to create the release branch.
-          branch: ${{ steps.create-branch.outputs.release_branch }}
+          branch: ${{ steps.set-release-version.outputs.release_branch }}
           base: main
-          commit-message: "chore: update version to ${{ steps.create-branch.outputs.release_version }}"
+          commit-message: "chore: update version to ${{ steps.set-release-version.outputs.release_version }}"
 
       - name: Create Pull Request to develop
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "Release branch for ${{ steps.create-branch.outputs.release_version }}"
+          title: "Release branch for ${{ steps.set-release-version.outputs.release_version }}"
           body: |
             This PR creates a new release branch from develop.
             Please review and merge this PR to create the release branch.
-          branch: ${{ steps.create-branch.outputs.release_branch }}
+          branch: ${{ steps.set-release-version.outputs.release_branch }}
           base: develop
-          commit-message: "chore: update version to ${{ steps.create-branch.outputs.release_version }}"
+          commit-message: "chore: update version to ${{ steps.set-release-version.outputs.release_version }}"
